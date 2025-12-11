@@ -1,66 +1,27 @@
-## Foundry
+AxoFi - The Volatility Dam for Mantle Network
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Regenerate your savings with guaranteed returns.
 
-Foundry consists of:
+AxoFi is a consumer-facing Fixed Yield Savings Protocol built on Mantle Network. It acts as a "Volatility Dam," stripping the variable yield from assets like mUSD and mETH to offer users a secure, fixed-term deposit product.
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+Why AxoFi?
 
-## Documentation
+- Predictability: Convert volatile, variable yields into a known, fixed return so users can plan finances without uncertainty.
+- Simplicity: Deposit a supported asset and receive a principal token that represents a guaranteed payout at maturity.
+- Safety: The protocol separates risky future yield from the safe principal immediately, reducing exposure to future market fluctuations.
 
-https://book.getfoundry.sh/
+How it helps users
 
-## Usage
+- Lock in returns today: Users receive a clear, fixed outcome for their deposit rather than exposure to future APY swings.
+- Composability: Principal tokens are ERC-20 compatible and can be used across DeFi for lending, collateral, or trading.
+- Test-friendly: Demo tools and mocks let users and auditors reproduce economic scenarios in local/testnet environments.
 
-### Build
+Roadmap (high level)
 
-```shell
-$ forge build
-```
+- Mainnet integration: Replace mocks with real market makers and router integrations.
+- Term options: Add multiple fixed-term maturities (3m / 6m / 12m).
+- Better UX: Zappers and fiat onboarding to make deposits seamless.
 
-### Test
+License
 
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+MIT License. Built for experimentation and testing in the Mantle ecosystem.

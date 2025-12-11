@@ -423,7 +423,7 @@ export default function LandingPage() {
                 <li>Traders absorb volatility (yield traders mint YT positions).</li>
                 <li>Security: audited contracts, multisig guardians, and read-only monitoring.</li>
               </ul>
-              <p style={{marginTop: '8px'}}>Contact: <a href="mailto:contact@axolotl.fi">contact@axolotl.fi</a></p>
+              <p style={{marginTop: '8px'}}>Contact: <a href="mailto:contactport8888@gmail.com">contactport8888@gmail.com</a></p>
             </div>
           </div>
         </div>
