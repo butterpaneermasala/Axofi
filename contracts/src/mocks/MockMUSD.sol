@@ -6,15 +6,15 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 // aderyn-fp-next-line(centralization-risk)
 contract MockMUSD is ERC20, Ownable {
-    // 1. Setup: Mint 1 Million to deployer immediately
-    uint256 constant MOCKFAUCETSUPPY = 1e6;
-    uint256 constant PRECISION = 1e18;
+    // --- Constants ---
+    uint256 private constant INITIAL_SUPPLY = 1_000_000; // 1 Million tokens
+    uint256 private constant DECIMALS_MULTIPLIER = 1e18;
 
     constructor(string memory _name, string memory _symbol) 
         ERC20(_name, _symbol) 
         Ownable(msg.sender) 
     {
-        _mint(msg.sender, MOCKFAUCETSUPPY * PRECISION);
+        _mint(msg.sender, INITIAL_SUPPLY * DECIMALS_MULTIPLIER);
     }
 
     // 2. The "Free Money" Button for your Frontend

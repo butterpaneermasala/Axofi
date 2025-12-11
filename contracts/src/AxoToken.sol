@@ -15,6 +15,10 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
  */
 // aderyn-fp-next-line(centralization-risk)
 contract AxoToken is ERC20Burnable, Ownable {
+    // --- Constants ---
+    uint256 private constant MIN_AMOUNT = 0;
+
+    // --- Errors ---
     error AxoToken__NotZeroAddress();
     error AxoToken__AmountMustBeMoreThanZero();
     error AxoToken__BurnAmountExceedsBalance();
@@ -40,7 +44,7 @@ contract AxoToken is ERC20Burnable, Ownable {
             revert AxoToken__NotZeroAddress();
         }
 
-        if (_amount <= 0) {
+        if (_amount <= MIN_AMOUNT) {
             revert AxoToken__AmountMustBeMoreThanZero();
         }
 
@@ -55,12 +59,31 @@ contract AxoToken is ERC20Burnable, Ownable {
     // aderyn-ignore-next-line(centralization-risk)
     function burn(uint256 _amount) public override onlyOwner {
         uint256 balance = balanceOf(msg.sender);
-        if (_amount <= 0) {
+        if (_amount <= MIN_AMOUNT) {
             revert AxoToken__AmountMustBeMoreThanZero();
         }
         if (balance < _amount) {
             revert AxoToken__BurnAmountExceedsBalance();
         }
         super.burn(_amount);
+    }
+
+    /**
+     * @param _from the address to burn tokens from
+     * @param _amount the amount of tokens to burn
+     */
+    // aderyn-ignore-next-line(centralization-risk)
+    function burnFrom(address _from, uint256 _amount) public override onlyOwner {
+        if (_from == address(0)) {
+            revert AxoToken__NotZeroAddress();
+        }
+        if (_amount <= MIN_AMOUNT) {
+            revert AxoToken__AmountMustBeMoreThanZero();
+        }
+        uint256 balance = balanceOf(_from);
+        if (balance < _amount) {
+            revert AxoToken__BurnAmountExceedsBalance();
+        }
+        _burn(_from, _amount);
     }
 }

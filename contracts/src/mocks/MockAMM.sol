@@ -8,14 +8,20 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 contract MockAMM is IMockAMM {
     using SafeERC20 for IERC20;
 
+    // --- Immutable State Variables ---
     IERC20 public immutable I_M_USD; // mUSD
+    IERC20 public immutable I_YT;    // Yield Token
 
-    // The Price: 1 YT = 0.05 mUSD (Implies 5% Yield)
-    uint256 public constant YIELD_PRICE = 0.05 ether; 
-    uint256 constant PRECISION = 1e18;
+    // --- Constants ---
+    // The Price: 1 YT = 0.05 mUSD (Implies 5% APY)
+    uint256 public constant YIELD_RATE_PERCENT = 5; // 5% annual yield
+    uint256 public constant YIELD_PRICE = 0.05 ether; // 5% in 18 decimal format
+    uint256 private constant PRECISION = 1e18;
+    uint256 private constant PERCENT_DENOMINATOR = 100;
 
-    constructor(address _mUSD) {
+    constructor(address _mUSD, address _yt) {
         I_M_USD = IERC20(_mUSD);
+        I_YT = IERC20(_yt);
     }
 
     /**
@@ -29,7 +35,7 @@ contract MockAMM is IMockAMM {
 
         // 2. Transfer the YT from the Vault to Us (The AMM)
         // (We assume the Vault has already approved us)
-        IERC20(msg.sender).safeTransferFrom(msg.sender, address(this), ytAmount);
+        I_YT.safeTransferFrom(msg.sender, address(this), ytAmount);
         
         // 3. Check if we have enough Cash to pay
         uint256 ammBalance = I_M_USD.balanceOf(address(this));
