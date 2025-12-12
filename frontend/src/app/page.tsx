@@ -80,6 +80,21 @@ export default function LandingPage() {
       div.style.left = `${x}px`;
       div.style.top = `${y}px`;
       div.addEventListener("mouseenter", () => breakPixel(div));
+      // When a pixel finishes its return animation, clear transform and CSS vars
+      const onAnimEnd = (ev: AnimationEvent) => {
+        // Some browsers include the keyframe name, be permissive
+        if (ev.animationName && ev.animationName.toLowerCase().includes('flyback')) {
+          // remove any transform and cleanup CSS variables so element sits exactly at left/top
+          div.style.transform = '';
+          div.style.removeProperty('--land-x');
+          div.style.removeProperty('--land-y');
+          div.style.removeProperty('--final-x');
+          div.style.removeProperty('--final-y');
+          div.style.removeProperty('--rot');
+          div.classList.remove('broken', 'shaking', 'returning');
+        }
+      };
+      div.addEventListener('animationend', onAnimEnd as any);
       wrapper.appendChild(div);
     }
 
@@ -102,8 +117,9 @@ export default function LandingPage() {
       const imageData = ctx.getImageData(0, 0, width, height);
       const data = imageData.data;
 
-      // Clear existing content if any (prevents dupes on re-renders)
-      wrapper.innerHTML = ""; 
+      // Clear existing pixel elements if any (prevents dupes on re-renders)
+      // Removing only `.pixel` avoids disturbing other elements inside the cloud container.
+      wrapper.querySelectorAll('.pixel').forEach((n) => n.remove());
 
       for (let y = 0; y < height; y += BLOCK_SIZE) {
         for (let x = 0; x < width; x += BLOCK_SIZE) {
@@ -184,6 +200,70 @@ export default function LandingPage() {
           }, 900);
         }, 900);
       }, 6000);
+
+      // If this broken pixel lands on the tag, trigger tag break
+      try {
+        const tagEl = document.getElementById('axofi-tag');
+        if (tagEl) {
+          const startAbsX = startX; // viewport absolute coords
+          const startAbsY = startY;
+          const finalAbsX = startAbsX + deltaFinalX;
+          const finalAbsY = startAbsY + deltaFinalY;
+          const tagRect = tagEl.getBoundingClientRect();
+          // small padding to make collision feel natural
+          const pad = 6;
+          if (finalAbsX >= tagRect.left - pad && finalAbsX <= tagRect.right + pad && finalAbsY >= tagRect.top - pad && finalAbsY <= tagRect.bottom + pad) {
+            // avoid repeated breaks
+            if (!tagEl.dataset.broken) {
+              tagEl.dataset.broken = '1';
+              breakTag(tagEl);
+            }
+          }
+        }
+      } catch (e) {
+        // noop
+      }
+    }
+
+    // Create brittle fragments from the tag and hide/restore the tag
+    function breakTag(tagEl: HTMLElement) {
+      const fragCount = 20;
+      const rect = tagEl.getBoundingClientRect();
+      // Use the cloud container as the coordinate space for fragments so positioning
+      // remains correct even if the tag is outside the `#cloud-wrapper` element.
+      const cloudContainer = document.querySelector('.cloud-container');
+      const parentRect = cloudContainer ? cloudContainer.getBoundingClientRect() : (wrapper ? wrapper.getBoundingClientRect() : { left: 0, top: 0 });
+      // hide the tag while fragments are visible
+      tagEl.style.visibility = 'hidden';
+
+      for (let i = 0; i < fragCount; i++) {
+        const frag = document.createElement('div');
+        frag.className = 'tag-frag';
+        // random position inside tag
+        const rx = Math.random() * (rect.width - 6) + rect.left;
+        const ry = Math.random() * (rect.height - 6) + rect.top;
+        // convert to wrapper-local coordinates
+        const localX = rx - parentRect.left;
+        const localY = ry - parentRect.top;
+        frag.style.left = `${localX}px`;
+        frag.style.top = `${localY}px`;
+        // set random translation and rotation via CSS vars
+        const tx = (Math.random() - 0.5) * 160 + 'px';
+        const ty = (Math.random() * 160 + 40) + 'px';
+        const rot = (Math.random() - 0.5) * 720 + 'deg';
+        frag.style.setProperty('--tx', tx);
+        frag.style.setProperty('--ty', ty);
+        frag.style.setProperty('--rot', rot);
+        wrapper?.appendChild(frag);
+        // remove after animation
+        frag.addEventListener('animationend', () => frag.remove());
+      }
+
+      // restore tag after a delay so it can be broken again later
+      setTimeout(() => {
+        tagEl.style.visibility = '';
+        delete tagEl.dataset.broken;
+      }, 7000);
     }
 
     generateTextCloud();
@@ -198,6 +278,31 @@ export default function LandingPage() {
     }
 
     document.addEventListener("touchmove", onTouchMove, { passive: true });
+
+    // --- 4b. Scroll-driven ocean overlay ---
+    const oceanEl = document.getElementById('ocean');
+    const heroEl = document.getElementById('hero');
+    function onScroll() {
+      if (!oceanEl || !heroEl) return;
+      const heroRect = heroEl.getBoundingClientRect();
+      // progress: 0 when hero bottom is at bottom of viewport, 1 when hero top reaches top
+      const viewportH = window.innerHeight || 800;
+      const progress = Math.min(Math.max((viewportH - heroRect.top) / (viewportH + heroRect.height), 0), 1);
+
+      // as user scrolls down, raise the ocean visually and bring it above the land
+      // small translate and elevation effect
+      const translateY = Math.min(progress * 30, 30); // in px
+      oceanEl.style.transform = `translateY(-${translateY}px)`;
+      if (progress > 0.25) {
+        oceanEl.classList.add('ocean-on-top');
+      } else {
+        oceanEl.classList.remove('ocean-on-top');
+      }
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    // run once to set initial state
+    onScroll();
 
     // --- 5. Twitter Widget Loader ---
     const tweetRoot = document.getElementById("tweet-embed-root");
@@ -243,6 +348,7 @@ export default function LandingPage() {
 
     return () => {
       document.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener('scroll', onScroll as any);
     };
   }, []);
 
@@ -252,12 +358,14 @@ export default function LandingPage() {
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
         html, body { height: 100%; }
         body { margin: 0; padding: 0; width: 100vw; overflow-x: hidden; overflow-y: auto; background-color: #001e36; font-family: sans-serif; cursor: crosshair; -webkit-user-select: none; user-select: none; }
-        #hero { position: relative; width: 100%; height: 100vh; overflow: hidden; background: linear-gradient(to bottom, #4ca1af, #c4e0e5); z-index: 5; }
+        /* Pin the hero to viewport so page scroll reveals components underneath */
+        #hero { position: fixed; top: 0; left: 0; right: 0; width: 100%; height: 100vh; overflow: hidden; background: linear-gradient(to bottom, #4ca1af, #c4e0e5); z-index: 5; }
         .airplane-wrapper { position: absolute; top: 10%; left: 100%; z-index: 4; display: flex; align-items: center; animation: flyAcross 25s linear infinite; pointer-events: none; }
         .pixel-plane { width: 100px; height: 50px; background-image: url("https://raw.githubusercontent.com/butterpaneermasala/assets/main/image-removebg-preview.png"); background-repeat: no-repeat; background-size: contain; background-position: center; margin-right: 0px; filter: drop-shadow(4px 4px 0 rgba(0,0,0,0.2)); }
         .pixel-banner { background-color: #ff5252; color: white; font-family: 'Press Start 2P', cursive; font-size: 0.8rem; padding: 8px 12px; border: 2px solid white; box-shadow: 4px 4px 0 rgba(0,0,0,0.2); white-space: nowrap; }
         @keyframes flyAcross { 0% { transform: translateX(0); left: 110%; } 100% { transform: translateX(0); left: -600px; } }
-        #ocean { position: relative; width: 100%; min-height: auto; background: linear-gradient(to bottom, #005b82 0%, #001e36 100%); z-index: 20; padding-bottom: 40px; margin-top: 0; }
+        /* Push ocean content below the pinned hero so scrolling reveals it */
+        #ocean { position: relative; width: 100%; min-height: auto; background: linear-gradient(to bottom, #005b82 0%, #001e36 100%); z-index: 20; padding-bottom: 40px; margin-top: 100vh; }
         .ocean-top-divider { position: absolute; top: -100px; left: 0; width: 100%; height: 101px; overflow: hidden; z-index: 20; pointer-events: none; }
         .fog-wrapper { position: absolute; bottom: 0; left: 0; width: 100%; height: 250px; z-index: 25; pointer-events: none; overflow: hidden; }
         .fog-layer { position: absolute; bottom: 0; left: 0; width: 200%; height: 100%; background-repeat: repeat-x; background-position: bottom left; filter: blur(8px); }
@@ -282,11 +390,53 @@ export default function LandingPage() {
         .cloud-container { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); width: 600px; height: auto; z-index: 20; display: flex; flex-direction: column; align-items: center; gap: 12px; }
         #cloud-wrapper { position: relative; width: 600px; height: 250px; }
         .pixel { position: absolute; width: 10px; height: 10px; background: rgba(255,255,255,0.95); border-radius: 1px; will-change: transform; z-index: 30; }
-        /* AxoFi tag (pill under the pixel cloud) */
-        .axofi-tag { display: inline-block; margin-top: 14px; background: rgba(0,0,0,0.45); color: #ffeb3b; border: 2px solid rgba(255,255,255,0.08); padding: 8px 14px; border-radius: 999px; font-family: 'Press Start 2P', cursive; font-size: 0.7rem; z-index: 40; pointer-events: none; text-transform: uppercase; letter-spacing: 0.02em; }
-        .pixel.broken { pointer-events: none; z-index: 50; animation: bounceAndRoll 1.8s cubic-bezier(0.3, 0.05, 0.2, 1) forwards; }
-        .pixel.shaking { z-index: 50; animation: shakeGround 0.15s infinite; transform: translate(var(--final-x), var(--final-y)) rotate(var(--rot)); }
-        .pixel.returning { pointer-events: none; z-index: 100; animation: flyBack 0.6s ease-in forwards; }
+        /* AxoFi tag visually integrated into the pixel cloud (positioned inside the cloud wrapper)
+           Styled as a brittle yellow pixel block so it reads as part of the cloud */
+        .axofi-tag {
+          position: absolute;
+          bottom: 8px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #ffd943; /* warm yellow */
+          color: #2b2b2b; /* dark text for contrast */
+          border: 4px solid #b38600; /* strong pixel border */
+          padding: 6px 16px;
+          font-family: 'Press Start 2P', cursive;
+          font-size: 0.72rem;
+          z-index: 15;
+          pointer-events: none;
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
+          box-shadow: inset 0 -6px 0 rgba(0,0,0,0.08), 0 6px 0 rgba(0,0,0,0.12);
+          border-radius: 2px; /* keep slightly blocky */
+          image-rendering: pixelated;
+        }
+
+        /* A brittle look: a quick crack sprite using pseudo-element (subtle) */
+        .axofi-tag::after {
+          content: '';
+          position: absolute;
+          left: 8px;
+          top: 6px;
+          width: 8px;
+          height: 8px;
+          background: linear-gradient(45deg, rgba(0,0,0,0.12) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.08) 75%);
+          opacity: 0.25;
+          transform: rotate(22deg);
+          pointer-events: none;
+        }
+
+        /* Tag fragment pieces when the tag breaks */
+        .tag-frag { position: absolute; width: 8px; height: 8px; background: #ffd943; border: 2px solid #b38600; border-radius: 1px; image-rendering: pixelated; z-index: 120; pointer-events: none; animation: tagFragAnim 1400ms cubic-bezier(.2,.8,.2,1) forwards; }
+        @keyframes tagFragAnim {
+          0% { transform: translate(0,0) rotate(0deg); opacity: 1; }
+          60% { transform: translate(var(--tx,0px), var(--ty,60px)) rotate(var(--rot,180deg)); opacity: 1; }
+          100% { transform: translate(var(--tx,0px), var(--ty,120px)) rotate(calc(var(--rot,180deg) + 180deg)); opacity: 0; }
+        }
+        /* Ensure pixels render above the tag while animating/returning */
+        .pixel.broken { pointer-events: none; z-index: 60; animation: bounceAndRoll 1.8s cubic-bezier(0.3, 0.05, 0.2, 1) forwards; }
+        .pixel.shaking { z-index: 60; animation: shakeGround 0.15s infinite; transform: translate(var(--final-x), var(--final-y)) rotate(var(--rot)); }
+        .pixel.returning { pointer-events: none; z-index: 110; animation: flyBack 0.6s ease-in forwards; }
           /* Slow animations so broken pixels fall/roll slower */
           .pixel.broken { pointer-events: none; z-index: 50; animation: bounceAndRoll 3s cubic-bezier(0.3, 0.05, 0.2, 1) forwards; }
           .pixel.returning { pointer-events: none; z-index: 100; animation: flyBack 1.2s ease-in forwards; }
@@ -321,6 +471,9 @@ export default function LandingPage() {
 
         /* Container for stickers so they can be separated from float tiles */
         .ocean-stickers { position: absolute; left: 0; top: 0; width: 100%; z-index: 9998; pointer-events: none; display: block; }
+
+        /* When ocean should sit visually above the land */
+        .ocean-on-top { z-index: 45 !important; transition: transform 420ms ease, box-shadow 420ms ease; box-shadow: 0 -20px 60px rgba(0,0,0,0.25); }
 
         /* Tiles grouping: three small rafts */
         .tiles { display: flex; flex-direction: column; gap: 24px; width: 100%; align-items: center; }
@@ -376,7 +529,7 @@ export default function LandingPage() {
 
         <div className="cloud-container">
           <div id="cloud-wrapper"></div>
-          <div className="axofi-tag">Predictable Savings</div>
+            <div id="axofi-tag" className="axofi-tag">Predictable Savings</div>
         </div>
 
         <div className="hint">Scroll down for Ocean • Touch "AxoFi"</div>
