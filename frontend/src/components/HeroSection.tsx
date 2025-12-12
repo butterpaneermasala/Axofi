@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useEffect, useRef } from "react";
-import GridTiles from './GridTiles';
+const GridTiles = () => null;
 
 interface HeroSectionProps {
   title: string;
@@ -77,5 +77,6 @@ export default function HeroSection({
           )}
         </div>
       </div>
-            return null;
-          }
+    </section>
+  );
+}

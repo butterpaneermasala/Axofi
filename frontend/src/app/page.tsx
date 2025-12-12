@@ -342,7 +342,6 @@ export default function LandingPage() {
           .protocol-container { width: 100%; }
           .protocol-container .protocol-raft { width: 40%; max-width: 420px; }
           .raft { width: 28%; max-width: none; }
-          #cloud-wrapper { left: 50%; top: 14%; }
         }
 
         /* Responsive: remove enforced square aspect on very small screens so content fits */
