@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
 
-import "forge-std/Script.sol";
-import "../src/AxoVault.sol";
-import "../src/mocks/MockMUSD.sol";
-import "../src/mocks/MockAMM.sol";
-import {AxoToken} from "../src/AxoToken.sol";
+import {Script} from "forge-std/Script.sol";
+import {AxoVault} from "src/AxoVault.sol";
+import {MockMUSD} from "src/mocks/MockMUSD.sol";
+import {MockAMM} from "src/mocks/MockAMM.sol";
+import {MockMUSDEngine} from "src/mocks/MockMUSDEngine.sol";
+import {AxoToken} from "src/AxoToken.sol";
 
 contract DeployScript is Script {
     // --- Deployment Constants ---
     uint256 private constant AMM_INITIAL_LIQUIDITY = 100_000; // 100k tokens
     uint256 private constant DECIMALS_MULTIPLIER = 1e18;
     uint256 private constant INITIAL_SUPPLY = 10_000_000;
+    address oracle = 
 
     function run() external {
         vm.startBroadcast();
@@ -21,6 +23,7 @@ contract DeployScript is Script {
         
         // --- SYSTEM 1: mUSD ---
         MockMUSD musd = new MockMUSD(INITIAL_SUPPLY,"Mantle USD", "mUSD");
+        MockUSDEngine musdEngine = new MockMUSDEngine()
         MockAMM ammUSD = new MockAMM(address(musd), address(ymUSD));
         AxoVault vaultUSD = new AxoVault(address(musd), address(ammUSD), address(pmUSD), address(ymUSD));
         

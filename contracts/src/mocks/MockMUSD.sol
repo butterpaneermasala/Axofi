@@ -73,6 +73,7 @@ contract MockMUSD is Ownable {
     uint256 private _totalSupply;        // visible supply (fragments) // Current external total supply // adjusted on rebase
     uint256 private _gonsPerFragment;    // scaling factor 
     uint256 private TOTAL_GONS;
+    // address private immutable I_OWNER;
 
     // --- storage varibales ---
     mapping(address => mapping(address => uint256)) private s_allowances;
@@ -98,8 +99,9 @@ contract MockMUSD is Ownable {
         TOTAL_GONS = type(uint256).max - (type(uint256).max % initialSupply); // 16 - 16%7 = 14, 14%7 = 0
         _gonsPerFragment = TOTAL_GONS / _totalSupply;
         s_gonsBalances[_msgSender()] = TOTAL_GONS; // owner holds initial
+        // I_OWNER = _msgSender();
     }
-
+    
     function totalSupply() public view returns (uint256) { 
         return _totalSupply; 
     }

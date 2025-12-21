@@ -40,11 +40,13 @@ contract MockMUSDEngine is Ownable {
     uint256 public lastRebase;
     uint256 public maxRebaseDeltaBps = 500; // max 5% per rebase (bps = 10000)
     uint256 public constant PRECISION = 18;
+    address private immutable I_OWNER;
 
     constructor(address _oracle, address _token, address _mnt) Ownable(msg.sender) {
         oracle = IPriceOracle(_oracle);
         token = IRebaseToken(_token);
         mnt = _mnt;
+        I_OWNER = msg.sender;
     }
 
     function setParams(uint256 newTargetPrice, uint256 newMinRebaseInterval, address _oracle, address _token) external onlyOwner {
@@ -106,6 +108,12 @@ contract MockMUSDEngine is Ownable {
         // for every 1 mnt sepolia received we mint 10_000 mUSD, // JUST for testing
         uint256 amountToCredit = fTokenAmount * MINTMULTIPLIER;
         IERC20(address(token)).safeTransfer(user, amountToCredit);
+    }
+
+    function windrawMnt() public onlyOwner {
+        uint256 mntBalance = IERC20(mnt).balanceOf(address(this));
+        if (mntBalance == 0) return;
+        IERC20(mnt).safeTransfer(I_OWNER, mntBalance);
     }
     // JUST FOR TESTING AND MOCK //
     
