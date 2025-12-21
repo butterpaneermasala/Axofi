@@ -46,18 +46,23 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol"; // ownable
 interface IRebaseToken {
     function rebase(int256 supplyDelta) external; 
     function totalSupply() external view returns(uint256);
+    function tokenDecimals() external view returns (uint8);
+    function transfer(address to, uint256 value) external returns (bool);
 }
 
 // aderyn-fp-next-line(centralization-risk)
 contract MockMUSD is Ownable {
+
+    // --- errors ---
+    error MockMUSD__initialSupplyMustNotBeZero();
 
     // --- events ---
     event Transfer(address from, address to, uint256 amount);
     event Approval(address from, address to, uint256 amount);
 
     // --- public variables ---
-    string public name = "Mock MUSD";
-    string public symbol = "mMUSD";
+    string public name;
+    string public symbol;
     uint8 public decimals = 18;
 
     /**
@@ -82,8 +87,12 @@ contract MockMUSD is Ownable {
         _;
     }
     
-    constructor(uint256 initialSupply) Ownable(_msgSender()) {
-        require(initialSupply > 0, "initial supply > 0");
+    constructor(uint256 initialSupply, string memory _name, string memory _symbol) Ownable(_msgSender()) {
+        if(initialSupply < 1) {
+            revert MockMUSD__initialSupplyMustNotBeZero();
+        }
+        name = _name;
+        symbol = _symbol;
         _totalSupply = initialSupply;
         // set TOTAL_GONS as max multiple of initialSupply
         TOTAL_GONS = type(uint256).max - (type(uint256).max % initialSupply); // 16 - 16%7 = 14, 14%7 = 0
@@ -99,6 +108,12 @@ contract MockMUSD is Ownable {
         return s_gonsBalances[who] / _gonsPerFragment;
     }
 
+
+    /**
+     * @notice called by a token holder to move their tokens
+     * @param to the address they want to move their tokens to
+     * @param value the amount of tokens they want to move
+     */
     function transfer(address to, uint256 value) public returns (bool) {
         uint256 gonValue = value * _gonsPerFragment;
         
@@ -106,14 +121,27 @@ contract MockMUSD is Ownable {
         s_gonsBalances[_msgSender()] -= gonValue;
         s_gonsBalances[to] += gonValue;
         
-        // REQUIRED: Emit the Transfer event so Metamask sees it
+        // REQUIRED: Emit the Transfer event so Wallet/blockexplorer/Metamask sees it
         emit Transfer(_msgSender(), to, value); 
         return true;
     }
 
-    function allowance(address owner, address spender) public view returns (uint256) {
+
+    /**
+     * @notice called by token holder to set an allowance for `spender`
+     * @notice internal function, only called by `transferFrom`
+     * @param owner address of the owner
+     * @param spender address of the spender they want to allow their tokens to
+     */
+    function allowance(address owner, address spender) internal view returns (uint256) {
         return s_allowances[owner][spender];
     }
+
+    /**
+     * @notice called by users who want to set a spender for their tokens
+     * @param spender the spender
+     * @param value amount of tokens the users want to allow
+     */
 
     function approve(address spender, uint256 value) public returns (bool) {
         s_allowances[_msgSender()][spender] = value;
@@ -121,6 +149,13 @@ contract MockMUSD is Ownable {
         return true;
     }
 
+
+    /**
+     * @notice this function allows the spender to spend/move the tokens
+     * @param from this is the owner address
+     * @param to the target/receiver address the spender wants the token to transfer
+     * @param value the amount of tokens that is being moved
+     */
     function transferFrom(address from, address to, uint256 value) public returns (bool) {
         uint256 currentAllowance = s_allowances[from][_msgSender()];
         require(currentAllowance >= value, "ERC20: transfer amount exceeds allowance");
@@ -153,6 +188,10 @@ contract MockMUSD is Ownable {
             _totalSupply = _totalSupply + uint256(supplyDelta);
         }
         _gonsPerFragment = TOTAL_GONS / _totalSupply;
+    }
+
+    function tokenDecimals() external view returns(uint8) {
+        return decimals;
     }
 
 }

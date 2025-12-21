@@ -11,6 +11,7 @@ contract DeployScript is Script {
     // --- Deployment Constants ---
     uint256 private constant AMM_INITIAL_LIQUIDITY = 100_000; // 100k tokens
     uint256 private constant DECIMALS_MULTIPLIER = 1e18;
+    uint256 private constant INITIAL_SUPPLY = 10_000_000;
 
     function run() external {
         vm.startBroadcast();
@@ -19,7 +20,7 @@ contract DeployScript is Script {
         AxoToken ymUSD = new AxoToken("Yield Mantle USD", "ymUSD",address(msg.sender));
         
         // --- SYSTEM 1: mUSD ---
-        MockMUSD musd = new MockMUSD("Mantle USD", "mUSD");
+        MockMUSD musd = new MockMUSD(INITIAL_SUPPLY,"Mantle USD", "mUSD");
         MockAMM ammUSD = new MockAMM(address(musd), address(ymUSD));
         AxoVault vaultUSD = new AxoVault(address(musd), address(ammUSD), address(pmUSD), address(ymUSD));
         

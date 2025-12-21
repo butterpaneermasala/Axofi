@@ -3,13 +3,19 @@ pragma solidity 0.8.30;
 
 import { MockMUSD } from "./MockMUSD.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import {IRebaseToken} from "./MockMUSD.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+
+using SafeERC20 for IERC20;
 
 /**
  * @notice Simple Logic contract for rebasing mUSD
  */
 
 interface IPriceOracle { function getPrice() external view returns (uint256 price, uint8 decimals); }
-interface IRebaseToken { function totalSupply() external view returns (uint256); function rebase(int256 supplyDelta) external; }
+
 
 contract MockMUSDEngine is Ownable {
     // --- errors ---
@@ -23,14 +29,22 @@ contract MockMUSDEngine is Ownable {
     IPriceOracle oracle;
     IRebaseToken token; 
 
+    // JUST FOR TESTING AND MOCK //
+    address mnt; // only for testing, here we will be taking mnt sepolia to give out users mUSD
+    error MockMUSD__NotAVaildDepositedToken();
+    uint256 constant MINTMULTIPLIER = 10_000;
+    // JUST FOR TESTING AND MOCK //
+
     uint256 public targetPrice = 1e18;
     uint256 public minRebaseInterval = 1 hours;
     uint256 public lastRebase;
     uint256 public maxRebaseDeltaBps = 500; // max 5% per rebase (bps = 10000)
+    uint256 public constant PRECISION = 18;
 
-    constructor(address _oracle, address _token) Ownable(msg.sender) {
+    constructor(address _oracle, address _token, address _mnt) Ownable(msg.sender) {
         oracle = IPriceOracle(_oracle);
         token = IRebaseToken(_token);
+        mnt = _mnt;
     }
 
     function setParams(uint256 newTargetPrice, uint256 newMinRebaseInterval, address _oracle, address _token) external onlyOwner {
@@ -41,10 +55,14 @@ contract MockMUSDEngine is Ownable {
         oracle = IPriceOracle(_oracle);
         token = IRebaseToken(_token);
     }
-
+    /**
+     * @param price current price of the the token mUSD depends on (USDY) 
+     * @param priceDecimals the number decimal places USDY has, this parameter is need to normalize the prices
+     * @param currentSupply current supply of mUSD (external)
+     */
     function computeSupplyDelta(uint256 price, uint8 priceDecimals, uint256 currentSupply) public view returns (int256) {
         // Normalize price to 18 decimals
-        uint256 normalizedPrice = price * (10 ** (18 - priceDecimals));
+        uint256 normalizedPrice = price * (10 ** (PRECISION - priceDecimals));
         // desiredSupply = currentSupply * (normalizedPrice / targetPrice)
         // supplyDelta = desiredSupply - currentSupply
         // compute in uint256 then convert to int256 with signs
@@ -77,7 +95,19 @@ contract MockMUSDEngine is Ownable {
         }
     }
 
-
+    // JUST FOR TESTING AND MOCK //
+    /**
+     * @notice faucet anyone can interact with by depositing and get mUSD to test on our protcol
+     */
+    function getFaucet(address user, address fToken, uint256 fTokenAmount) public {
+        if (fToken != mnt) revert MockMUSD__NotAVaildDepositedToken(); // rever if the user is not sending mnt
+        // pull payment (will revert on failure)
+        IERC20(fToken).safeTransferFrom(user, address(this), fTokenAmount);
+        // for every 1 mnt sepolia received we mint 10_000 mUSD, // JUST for testing
+        uint256 amountToCredit = fTokenAmount * MINTMULTIPLIER;
+        IERC20(address(token)).safeTransfer(user, amountToCredit);
+    }
+    // JUST FOR TESTING AND MOCK //
     
 }
 
