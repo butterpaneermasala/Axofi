@@ -12,6 +12,7 @@ import {IMockAMM} from "./interfaces/IMockAMM.sol";
 
 /**
  * @title AxoVault
+ * @author x@satyaorz
  * @notice The "Volatility Dam" that splits yield and auto-sells it for fixed returns.
  * @dev This contract allows users to deposit assets and receive fixed yield by selling yield tokens to an AMM
  */

@@ -9,7 +9,7 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title AxoTonken
- * @author satyaorz
+ * @author x@satyaorz
  * @notice This is the Token Contract of the protocol, that mints and burn the ERC20 tokens (PMUSD and YMUSD). 
  * @notice PMUSD is the principal token and YMUSD is the yield token
  */
