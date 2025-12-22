@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
 
-import { MockMUSD } from "./MockMUSD.sol";
+// import { MockMUSD } from "./MockMUSD.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import {IRebaseToken} from "./MockMUSD.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -21,6 +21,8 @@ contract MockMUSDEngine is Ownable {
     // --- errors ---
     error MUSDEngine__addressCantNotBeZero();
     error MUSDEngine__canNotSetSuchSmallParam();
+    error MockMUSDEngine__AmountCanNotBeZero();
+    error MockMUSDEngine__AddressCanNotBeZero();
 
     // --- events ---
     event Rebased(uint256 oldSupply, uint256 newSupply, int256 supplyDelta);
@@ -43,6 +45,7 @@ contract MockMUSDEngine is Ownable {
     address private immutable I_OWNER;
 
     constructor(address _oracle, address _token, address _mnt) Ownable(msg.sender) {
+        if (_oracle == address(0) || _token == address(0)) revert MockMUSDEngine__AddressCanNotBeZero();
         oracle = IPriceOracle(_oracle);
         token = IRebaseToken(_token);
         mnt = _mnt;
@@ -101,16 +104,25 @@ contract MockMUSDEngine is Ownable {
     /**
      * @notice faucet anyone can interact with by depositing and get mUSD to test on our protcol
      */
-    function getFaucet(address user, address fToken, uint256 fTokenAmount) public {
+    function getFaucet(address user, address fToken, uint256 fTokenAmount) external {
+        if (fTokenAmount == 0) revert MockMUSDEngine__AmountCanNotBeZero();
         if (fToken != mnt) revert MockMUSD__NotAVaildDepositedToken(); // rever if the user is not sending mnt
         // pull payment (will revert on failure)
+        // aderyn-ignore-next-line(arbitrary-transfer-from)
         IERC20(fToken).safeTransferFrom(user, address(this), fTokenAmount);
         // for every 1 mnt sepolia received we mint 10_000 mUSD, // JUST for testing
         uint256 amountToCredit = fTokenAmount * MINTMULTIPLIER;
         IERC20(address(token)).safeTransfer(user, amountToCredit);
     }
+    // to fund the swap that we mock in order to swap ymUSD and mUSD
+    // aderyn-ignore-next-line(centralization-risk)
+    function fundAmm(address ammAddress, uint256 amount) external onlyOwner {
+        IERC20(address(token)).safeTransfer(ammAddress, amount);
+    }
 
-    function windrawMnt() public onlyOwner {
+    // to withdraw deposited tokens
+    // aderyn-ignore-next-line(centralization-risk)
+    function windrawMnt() external onlyOwner {
         uint256 mntBalance = IERC20(mnt).balanceOf(address(this));
         if (mntBalance == 0) return;
         IERC20(mnt).safeTransfer(I_OWNER, mntBalance);

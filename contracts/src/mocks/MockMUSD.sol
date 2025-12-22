@@ -184,9 +184,13 @@ contract MockMUSD is Ownable {
             return;
         }
         if (supplyDelta < 0) {
+            // casting to 'uint256' is safe because we are already checking if supplyDelta is negative
+            // forge-lint: disable-next-line(unsafe-typecast)
             uint256 decrease = uint256(-supplyDelta);
             _totalSupply = _totalSupply > decrease ? _totalSupply - decrease : 1;
         } else {
+            // casting to 'uint256' is safe because we are already checking if supplyDelta is negative
+            // forge-lint: disable-next-line(unsafe-typecast)
             _totalSupply = _totalSupply + uint256(supplyDelta);
         }
         _gonsPerFragment = TOTAL_GONS / _totalSupply;
