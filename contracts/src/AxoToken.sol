@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.30;
-// This the token contract of the protocol, we that mints and burns the tokens(PMUSD and YMUSD) 
+// This the token contract of the protocol, that mints and burns the tokens(PMUSD and YMUSD) 
 
 import { ERC20Burnable, ERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";

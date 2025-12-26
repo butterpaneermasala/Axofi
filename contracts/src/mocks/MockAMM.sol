@@ -5,6 +5,11 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IMockAMM } from "../interfaces/IMockAMM.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+/**
+ * @title Automated market maker
+ * @notice used to mock swap of mMUSD and ymUSD
+ */
+
 contract MockAMM is IMockAMM {
     using SafeERC20 for IERC20;
 
